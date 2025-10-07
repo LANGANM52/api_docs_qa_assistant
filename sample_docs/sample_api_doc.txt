@@ -1,0 +1,362 @@
+TaskFlow API Documentation
+==========================
+
+Overview
+--------
+The TaskFlow API allows you to programmatically interact with your task management system. You can create, update, and manage projects, tasks, users, and teams through RESTful endpoints.
+
+Base URL: https://api.taskflow.io/v1
+
+Authentication
+--------------
+The TaskFlow API uses Bearer token authentication. Include your API token in the Authorization header of all requests.
+
+Header format:
+Authorization: Bearer <your_api_token>
+
+To generate an API token:
+1. Log into your TaskFlow account
+2. Navigate to Settings > API Keys
+3. Click "Create New Key"
+4. Copy and securely store your token
+5. Tokens expire after 90 days of inactivity
+
+Rate Limits
+-----------
+API requests are rate limited to prevent abuse:
+- Free tier: 100 requests per hour
+- Pro tier: 1,000 requests per hour
+- Enterprise tier: 10,000 requests per hour
+
+Rate limit headers are included in all responses:
+- X-RateLimit-Limit: Your rate limit
+- X-RateLimit-Remaining: Remaining requests
+- X-RateLimit-Reset: Unix timestamp when limit resets
+
+If you exceed your rate limit, you'll receive a 429 Too Many Requests response with a Retry-After header.
+
+Projects Endpoint
+-----------------
+GET /projects
+Returns a paginated list of all projects accessible to you.
+
+Query Parameters:
+- page (optional): Page number (default: 1)
+- limit (optional): Results per page (default: 20, max: 100)
+- status (optional): Filter by status (active, archived, completed)
+- search (optional): Search projects by name or description
+
+Response Example:
+{
+  "projects": [
+    {
+      "id": "proj_abc123",
+      "name": "Website Redesign",
+      "description": "Q4 website overhaul",
+      "status": "active",
+      "created_at": "2025-09-15T10:00:00Z",
+      "updated_at": "2025-10-05T14:30:00Z",
+      "owner_id": "user_xyz789",
+      "team_id": "team_def456"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "has_more": true
+  }
+}
+
+POST /projects
+Creates a new project.
+
+Request Body:
+{
+  "name": "Mobile App Development",
+  "description": "iOS and Android apps for Q1 launch",
+  "team_id": "team_def456",
+  "status": "active"
+}
+
+Response: 201 Created
+{
+  "id": "proj_new123",
+  "name": "Mobile App Development",
+  "created_at": "2025-10-07T18:00:00Z",
+  ...
+}
+
+GET /projects/{project_id}
+Retrieves details for a specific project.
+
+DELETE /projects/{project_id}
+Archives a project. Note: This doesn't delete the project, just marks it as archived.
+
+Tasks Endpoint
+--------------
+GET /projects/{project_id}/tasks
+Returns all tasks within a project.
+
+Query Parameters:
+- status (optional): Filter by status (todo, in_progress, completed, blocked)
+- assignee_id (optional): Filter by assigned user
+- priority (optional): Filter by priority (low, medium, high, urgent)
+- due_before (optional): Filter tasks due before date (ISO 8601)
+- due_after (optional): Filter tasks due after date (ISO 8601)
+
+Response Example:
+{
+  "tasks": [
+    {
+      "id": "task_123abc",
+      "project_id": "proj_abc123",
+      "title": "Design landing page",
+      "description": "Create mockups for homepage redesign",
+      "status": "in_progress",
+      "priority": "high",
+      "assignee_id": "user_xyz789",
+      "created_by": "user_abc123",
+      "due_date": "2025-10-15T23:59:59Z",
+      "created_at": "2025-10-01T09:00:00Z",
+      "updated_at": "2025-10-07T11:30:00Z",
+      "tags": ["design", "frontend"],
+      "estimated_hours": 8,
+      "actual_hours": 5
+    }
+  ]
+}
+
+POST /projects/{project_id}/tasks
+Creates a new task within a project.
+
+Request Body:
+{
+  "title": "Write API documentation",
+  "description": "Document all new endpoints",
+  "assignee_id": "user_xyz789",
+  "priority": "medium",
+  "due_date": "2025-10-20T17:00:00Z",
+  "tags": ["documentation"],
+  "estimated_hours": 4
+}
+
+PATCH /tasks/{task_id}
+Updates an existing task. Only include fields you want to change.
+
+Request Body:
+{
+  "status": "completed",
+  "actual_hours": 4.5
+}
+
+Users Endpoint
+--------------
+GET /users
+Returns all users in your organization.
+
+Query Parameters:
+- role (optional): Filter by role (admin, member, guest)
+- team_id (optional): Filter by team membership
+- status (optional): Filter by status (active, inactive)
+
+Response Example:
+{
+  "users": [
+    {
+      "id": "user_xyz789",
+      "email": "jane.smith@company.com",
+      "name": "Jane Smith",
+      "role": "member",
+      "status": "active",
+      "teams": ["team_def456", "team_ghi789"],
+      "created_at": "2024-06-10T08:00:00Z"
+    }
+  ]
+}
+
+GET /users/me
+Returns the currently authenticated user's information.
+
+Teams Endpoint
+--------------
+GET /teams
+Returns all teams in your organization.
+
+POST /teams
+Creates a new team.
+
+Request Body:
+{
+  "name": "Engineering",
+  "description": "Software development team",
+  "member_ids": ["user_abc123", "user_xyz789"]
+}
+
+POST /teams/{team_id}/members
+Adds a user to a team.
+
+Request Body:
+{
+  "user_id": "user_new456",
+  "role": "member"
+}
+
+Comments Endpoint
+-----------------
+GET /tasks/{task_id}/comments
+Returns all comments on a task.
+
+POST /tasks/{task_id}/comments
+Adds a comment to a task.
+
+Request Body:
+{
+  "content": "Design mockups are ready for review",
+  "mentions": ["user_abc123"]
+}
+
+Webhooks
+--------
+TaskFlow supports webhooks to notify your application of events.
+
+Supported events:
+- task.created
+- task.updated
+- task.completed
+- project.created
+- comment.created
+
+POST /webhooks
+Creates a new webhook subscription.
+
+Request Body:
+{
+  "url": "https://your-app.com/webhook",
+  "events": ["task.completed", "task.updated"],
+  "secret": "your_webhook_secret"
+}
+
+Webhook Payload Example:
+{
+  "event": "task.completed",
+  "timestamp": "2025-10-07T18:30:00Z",
+  "data": {
+    "task_id": "task_123abc",
+    "project_id": "proj_abc123",
+    "completed_by": "user_xyz789"
+  }
+}
+
+Error Handling
+--------------
+All errors return appropriate HTTP status codes with a JSON response:
+
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error message",
+    "details": "Additional context (optional)"
+  }
+}
+
+Common Status Codes:
+- 200 OK: Request succeeded
+- 201 Created: Resource created successfully
+- 204 No Content: Request succeeded, no content to return
+- 400 Bad Request: Invalid request parameters or body
+- 401 Unauthorized: Missing or invalid authentication token
+- 403 Forbidden: Valid token but insufficient permissions
+- 404 Not Found: Requested resource doesn't exist
+- 409 Conflict: Request conflicts with current state (e.g., duplicate)
+- 422 Unprocessable Entity: Valid request but semantic errors
+- 429 Too Many Requests: Rate limit exceeded
+- 500 Internal Server Error: Server error
+- 503 Service Unavailable: Temporary server issue
+
+Common Error Codes:
+- invalid_request: Malformed request
+- authentication_failed: Invalid or expired token
+- permission_denied: Insufficient permissions
+- resource_not_found: Requested resource doesn't exist
+- rate_limit_exceeded: Too many requests
+- validation_error: Request validation failed
+
+Pagination
+----------
+All list endpoints support cursor-based pagination for optimal performance.
+
+Response includes pagination metadata:
+{
+  "data": [...],
+  "pagination": {
+    "next_cursor": "eyJpZCI6MTIzfQ==",
+    "has_more": true
+  }
+}
+
+To fetch the next page, include the cursor in your request:
+GET /projects?cursor=eyJpZCI6MTIzfQ==
+
+Filtering and Sorting
+---------------------
+Most list endpoints support filtering and sorting:
+
+Filtering:
+- Use query parameters for simple filters: ?status=active
+- Multiple values: ?status=active,archived
+- Comparison operators: ?created_at[gte]=2025-01-01
+
+Sorting:
+- Use the sort parameter: ?sort=created_at
+- Descending order: ?sort=-created_at
+- Multiple fields: ?sort=-priority,created_at
+
+Best Practices
+--------------
+1. Always handle rate limits gracefully with exponential backoff
+2. Use cursor-based pagination for large datasets
+3. Store API tokens securely (never in version control)
+4. Validate webhooks using the provided secret
+5. Use filtering to reduce unnecessary data transfer
+6. Cache responses when appropriate (respect Cache-Control headers)
+7. Set appropriate timeouts (recommended: 30 seconds)
+8. Log all API errors for debugging
+9. Use HTTPS for all API calls
+10. Version your integrations to handle API changes
+
+SDKs and Libraries
+------------------
+Official SDKs are available:
+- Python: pip install taskflow-sdk
+- JavaScript: npm install @taskflow/sdk
+- Ruby: gem install taskflow
+- Go: go get github.com/taskflow/taskflow-go
+
+Example Usage (Python):
+```python
+from taskflow import TaskFlow
+
+client = TaskFlow(api_token="your_token_here")
+
+# Create a project
+project = client.projects.create(
+    name="New Project",
+    team_id="team_abc123"
+)
+
+# Create a task
+task = client.tasks.create(
+    project_id=project.id,
+    title="Important Task",
+    priority="high"
+)
+```
+
+Support and Resources
+--------------------
+- Documentation: https://docs.taskflow.io
+- API Status: https://status.taskflow.io
+- Support: support@taskflow.io
+- Community Forum: https://community.taskflow.io
+- GitHub: https://github.com/taskflow
