@@ -7,13 +7,13 @@ from app.models import (
     DocumentUpload, QuestionRequest, Answer, HealthCheck,
     Source
 )
-from app.services.llm_service import LLMService
+# from app.services.llm_service import LLMService  # Uncomment for OpenAI
 from app.services.embeddings import DocumentProcessor
-from app.services.vector_store import VectorStore
+# from app.services.vector_store import VectorStore  # Uncomment for OpenAI
 # Use mock service for free testing
-# from app.services.mock_llm_service import MockLLMService as LLMService  # Uncomment for free testing
+from app.services.mock_llm_service import MockLLMService as LLMService
 # Use simple vector store for free testing
-# from app.services.simple_vector_store import SimpleVectorStore as VectorStore  # Uncomment for free testing
+from app.services.simple_vector_store import SimpleVectorStore as VectorStore
 
 logger = logging.getLogger(__name__)
 
